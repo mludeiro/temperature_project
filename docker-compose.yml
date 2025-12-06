@@ -24,17 +24,16 @@ services:
       --reload
     volumes:
       - data_volume:/app/data
+    networks:
+      - temperature_network
     environment:
       # Celery settings
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-
       # PostgreSQL connection URL (ASYNC for SQLModel)
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
-
       # Local storage path
       DATA_DIR: /app/data
-
     ports:
       - "8000:8000"
     healthcheck:
@@ -70,6 +69,8 @@ services:
       --loglevel=INFO
     volumes:
       - data_volume:/app/data
+    networks:
+      - temperature_network
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -87,6 +88,8 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+    networks:
+      - temperature_network
     volumes:
       - redis_volume:/data
 
@@ -98,6 +101,8 @@ services:
     command: python app/upload_service.py
     volumes:
       - uploads_volume:/app/uploads
+    networks:
+      - temperature_network
     ports:
       - "8001:8001"
     healthcheck:
@@ -115,6 +120,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: appdb
+    networks:
+      - temperature_network
     ports:
       - "5432:5432"
     volumes:
@@ -125,3 +132,7 @@ volumes:
   redis_volume:
   postgres_volume:
   uploads_volume:
+
+networks:
+  temperature_network:
+    driver: bridge

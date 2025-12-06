@@ -5,17 +5,28 @@ from sqlmodel import Field, SQLModel, Session, create_engine, select
 import pandas as pd
 import os
 from datetime import datetime
-from .celery_app import celery
-from .config import DATABASE_URL, DATA_DIR
+from .config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND, DATABASE_URL, DATA_DIR
+import celery as celery_lib
+
+# Create Celery instance directly here
+celery = celery_lib.Celery(
+    "temperature_project",
+    broker=CELERY_BROKER_URL,
+    backend=CELERY_RESULT_BACKEND,
+)
+
+# Convert async URL to sync URL for SQLModel
+SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 app = FastAPI(title="Temperature API", description="FastAPI + SQLModel + Pandas + Celery ETL API")
 
 # Database setup
-engine = create_engine(DATABASE_URL)
+engine = create_engine(SYNC_DATABASE_URL)
 
 
 # Models
-class CityTemperature(SQLModel, table=True):
+class CityTemperature(SQLModel, table=True, table_name="citytemperature"):
+    __table_args__ = {"extend_existing": True}
     id: Optional[int] = Field(default=None, primary_key=True)
     city: str
     year: int
