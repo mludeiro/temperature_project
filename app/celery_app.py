@@ -1,9 +1,10 @@
 from celery import Celery
 from .config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND, DATABASE_URL
-from sqlmodel import Session, create_engine, SQLModel, Field
+from sqlmodel import Session, create_engine
 import pandas as pd
 import os
 from datetime import datetime
+from .models import CityTemperature
 
 # Convert async URL to sync URL for SQLModel
 SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
@@ -24,15 +25,6 @@ celery.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
-
-
-# Define CityTemperature model here for Celery tasks
-class CityTemperature(SQLModel, table=True, table_name="citytemperature"):
-    __table_args__ = {"extend_existing": True}
-    id: int = Field(default=None, primary_key=True)
-    city: str
-    year: int
-    avg_temperature: float
 
 
 @celery.task(name='process_temperature_data')

@@ -1,12 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.responses import JSONResponse
-from typing import Optional, List
-from sqlmodel import Field, SQLModel, Session, create_engine, select
+from typing import Optional
+from sqlmodel import Session, create_engine, select, SQLModel
 import pandas as pd
 import os
 from datetime import datetime
 from .config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND, DATABASE_URL, DATA_DIR
 import celery as celery_lib
+from .models import CityTemperature, CityTemperatureRead, ETLResponse, ETLStatusResponse, TemperatureListResponse
 
 # Create Celery instance directly here
 celery = celery_lib.Celery(
@@ -22,40 +23,6 @@ app = FastAPI(title="Temperature API", description="FastAPI + SQLModel + Pandas 
 
 # Database setup
 engine = create_engine(SYNC_DATABASE_URL)
-
-
-# Models
-class CityTemperature(SQLModel, table=True, table_name="citytemperature"):
-    __table_args__ = {"extend_existing": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
-    city: str
-    year: int
-    avg_temperature: float
-
-
-class CityTemperatureRead(SQLModel):
-    id: int
-    city: str
-    year: int
-    avg_temperature: float
-
-
-class ETLResponse(SQLModel):
-    status: str
-    task_id: str
-
-
-class ETLStatusResponse(SQLModel):
-    status: str
-    task_id: str
-    result: Optional[str] = None
-    error: Optional[str] = None
-
-
-class TemperatureListResponse(SQLModel):
-    page: int
-    total_pages: int
-    data: List[CityTemperatureRead]
 
 
 # Create tables
