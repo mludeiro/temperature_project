@@ -65,7 +65,7 @@ services:
         - action: rebuild
           path: ./uv.lock
     command: >
-      celery -A app.celery_app.celery worker
+      celery -A app.celery_app.celery worker -B
       --loglevel=INFO
     volumes:
       - data_volume:/app/data
@@ -98,11 +98,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python app/upload_service.py
+    command: python -m app.upload_service
     volumes:
-      - uploads_volume:/app/uploads
+      - data_volume:/app/data
     networks:
       - temperature_network
+    environment:
+      # Local storage path
+      DATA_DIR: /app/data
     ports:
       - "8001:8001"
     healthcheck:
@@ -131,7 +134,6 @@ volumes:
   data_volume:
   redis_volume:
   postgres_volume:
-  uploads_volume:
 
 networks:
   temperature_network:

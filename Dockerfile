@@ -8,6 +8,8 @@ RUN useradd appuser \
     && chown -R appuser /app \
     && rm -fr /app/.venv \
     && mkdir /home/appuser \
+    && mkdir -p /app/data \
+    && chmod -R 777 /app/data \
     && chown appuser /home/appuser \
     && pip install --upgrade pip \
     && pip install fastapi uvicorn[standard] celery redis sqlmodel pandas psycopg2-binary python-dotenv pydantic asyncpg requests aiosqlite python-multipart \

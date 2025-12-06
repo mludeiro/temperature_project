@@ -4,10 +4,15 @@ import os
 from datetime import datetime
 import uvicorn
 
-app = FastAPI(title="Simple Upload Service")
+# Usar importación absoluta en lugar de relativa
+import sys
+sys.path.append('/app')
+from app.config import DATA_DIR
 
-# Configuración
-UPLOAD_DIR = "/app/uploads"
+app = FastAPI(title="Temperature CSV Upload Service")
+
+# Configuración - usar el mismo directorio que el proceso ETL
+UPLOAD_DIR = DATA_DIR
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

@@ -1,8 +1,9 @@
 from celery import Celery
-from .config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND, DATABASE_URL
+from .config import CELERY_BROKER_URL, CELERY_RESULT_BACKEND, DATABASE_URL, DATA_DIR
 from sqlmodel import Session, create_engine
 import pandas as pd
 import os
+import time
 from datetime import datetime
 from .models import CityTemperature
 
@@ -83,3 +84,39 @@ def process_temperature_data(file_path: str):
 def health_check_task():
     """Simple health check task for Celery"""
     return "Celery worker is healthy"
+
+@celery.task(name='monitor_data_directory')
+def monitor_data_directory():
+    """Monitor the data directory for new CSV files and process them"""
+    # Ensure data directory exists
+    os.makedirs(DATA_DIR, exist_ok=True)
+    
+    processed_count = 0
+    
+    # Check for CSV files in the directory
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.csv'):
+            filepath = os.path.join(DATA_DIR, filename)
+            
+            try:
+                # Process the file
+                process_temperature_data.delay(filepath)
+                processed_count += 1
+            except Exception as e:
+                print(f"Error processing {filename}: {str(e)}")
+    
+    return f"Found and queued {processed_count} files for processing"
+
+
+# Schedule periodic tasks
+@celery.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    # Check for new files every minute
+    sender.add_periodic_task(60.0, monitor_data_directory.s(), name='monitor-data-directory')
+    
+    # Health check every 5 minutes
+    sender.add_periodic_task(300.0, health_check_task.s(), name='health-check')
+
+
+# Ejecutar la tarea de monitoreo al inicio para procesar archivos existentes
+monitor_data_directory.apply_async(countdown=10)
