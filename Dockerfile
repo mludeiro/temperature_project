@@ -10,16 +10,13 @@ RUN useradd appuser \
     && mkdir /home/appuser \
     && chown appuser /home/appuser \
     && pip install --upgrade pip \
-    && pip install uv
+    && pip install fastapi uvicorn[standard] celery redis sqlmodel pandas psycopg2-binary python-dotenv pydantic asyncpg \
+    && apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Use a non-root user from now on
 USER appuser
-
-
-# Sync dependencies
-RUN uv sync
 
 # Expose API port
 EXPOSE 8000

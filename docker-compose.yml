@@ -18,7 +18,7 @@ services:
         - action: rebuild
           path: ./uv.lock
     command: >
-      uv run uvicorn app.main:app
+      uvicorn app.main:app
       --host 0.0.0.0
       --port 8000
       --reload
@@ -37,6 +37,12 @@ services:
 
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       - redis
       - postgres
@@ -60,7 +66,7 @@ services:
         - action: rebuild
           path: ./uv.lock
     command: >
-      uv run celery -A app.celery_app.celery worker
+      celery -A app.celery_app.celery worker
       --loglevel=INFO
     volumes:
       - data_volume:/app/data
