@@ -1,0 +1,6 @@
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+DATA_DIR = os.getenv("DATA_DIR")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")

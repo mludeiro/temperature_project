@@ -1,0 +1,103 @@
+services:
+  api:
+    container_name: fastapi_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+        - action: rebuild
+          path: ./Dockerfile
+        - action: rebuild
+          path: ./docker-compose.yml
+        - action: rebuild
+          path: ./pyproject.toml
+        - action: rebuild
+          path: ./uv.lock
+    command: >
+      uv run uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    volumes:
+      - data_volume:/app/data
+    environment:
+      # Celery settings
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+
+      # PostgreSQL connection URL (ASYNC for SQLModel)
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
+
+      # Local storage path
+      DATA_DIR: /app/data
+
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - postgres
+
+  worker:
+    container_name: celery_worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: sync+restart
+          path: .
+          target: /app
+        - action: rebuild
+          path: ./Dockerfile
+        - action: rebuild
+          path: ./docker-compose.yml
+        - action: rebuild
+          path: ./pyproject.toml
+        - action: rebuild
+          path: ./uv.lock
+    command: >
+      uv run celery -A app.celery_app.celery worker
+      --loglevel=INFO
+    volumes:
+      - data_volume:/app/data
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+
+      # Same DB URL as API
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
+
+      DATA_DIR: /app/data
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    container_name: redis_broker
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_volume:/data
+
+  postgres:
+    container_name: postgres_db
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+
+volumes:
+  data_volume:
+  redis_volume:
+  postgres_volume:
