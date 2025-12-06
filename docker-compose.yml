@@ -90,6 +90,23 @@ services:
     volumes:
       - redis_volume:/data
 
+  upload_service:
+    container_name: upload_service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python app/upload_service.py
+    volumes:
+      - uploads_volume:/app/uploads
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   postgres:
     container_name: postgres_db
     image: postgres:16
@@ -107,3 +124,4 @@ volumes:
   data_volume:
   redis_volume:
   postgres_volume:
+  uploads_volume:
