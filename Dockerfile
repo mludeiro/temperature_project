@@ -12,7 +12,7 @@ RUN useradd appuser \
     && chmod -R 777 /app/data \
     && chown appuser /home/appuser \
     && pip install --upgrade pip \
-    && pip install fastapi uvicorn[standard] celery redis sqlmodel pandas psycopg2-binary python-dotenv pydantic asyncpg requests aiosqlite python-multipart \
+    && pip install fastapi uvicorn[standard] celery redis sqlmodel pandas psycopg2-binary python-dotenv pydantic asyncpg requests aiosqlite python-multipart aiohttp \
     && apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

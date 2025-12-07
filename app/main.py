@@ -137,6 +137,67 @@ async def get_temperature_by_id(temperature_id: int):
         return CityTemperatureRead(**temperature.dict())
 
 
+# POST endpoint to trigger ETL process
+@app.post("/datasets", response_model=ETLResponse)
+async def upload_dataset(file: UploadFile = File(...)):
+    """Upload a CSV file and trigger the ETL process"""
+    # Validate that it's a CSV file
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    
+    # Ensure data directory exists
+    os.makedirs(DATA_DIR, exist_ok=True)
+    
+    # Generate unique filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}_{file.filename}"
+    filepath = os.path.join(DATA_DIR, filename)
+    
+    # Save file
+    try:
+        with open(filepath, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Trigger Celery task
+        task = celery.send_task('process_temperature_data', args=[filepath])
+        
+        # Return response according to requirements
+        return ETLResponse(
+            status="enqueued",
+            task_id=task.id
+        )
+    
+    except Exception as e:
+        # Clean up file in case of error
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+
+# Endpoint to check ETL task status
+@app.get("/etl/status/{task_id}", response_model=ETLStatusResponse)
+async def get_etl_status(task_id: str):
+    """Get the status of an ETL task"""
+    try:
+        task = celery.AsyncResult(task_id)
+        
+        response = ETLStatusResponse(
+            task_id=task_id,
+            status=task.state
+        )
+        
+        if task.state == 'SUCCESS':
+            response.result = str(task.result)
+        elif task.state == 'FAILURE':
+            response.error = str(task.result)
+        
+        return response
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking task status: {str(e)}")
+
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
