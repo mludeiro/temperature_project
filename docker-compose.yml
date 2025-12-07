@@ -130,10 +130,23 @@ services:
     volumes:
       - postgres_volume:/var/lib/postgresql/data
 
+  redis_commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis_commander
+    environment:
+      - REDIS_HOST=redis_broker
+    ports:
+      - "8082:8081"
+    networks:
+      - temperature_network
+    depends_on:
+      - redis
+
 volumes:
   data_volume:
   redis_volume:
   postgres_volume:
+  redis_insight_data:
 
 networks:
   temperature_network:
